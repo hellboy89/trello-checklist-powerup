@@ -12,22 +12,19 @@ O Power-Up lê os dados de checklist de cada cartão e exibe um badge colorido i
 
 | Badge | Cor | Condição |
 |---|---|---|
-| `Tudo feito!` | 🟢 Verde | Todos os itens marcados |
-| `X pendente(s)` | 🟡 Amarelo | ≥ 50% concluído, ainda há pendências |
-| `X pendente(s)` | 🟠 Laranja | < 50% concluído |
-| `⚠ NADA MARCADO!` | 🔴 Vermelho | Nenhum item marcado |
+| `✅ TUDO FEITO!` | 🟢 Verde | Todos os itens marcados |
+| `⚠️ X PENDENTE(S)` | 🟡 Amarelo | ≥ 50% concluído, ainda há pendências |
+| `🔴 X PENDENTE(S)` | 🔴 Vermelho | < 50% concluído |
+| `🚨 NADA MARCADO!` | 🔴 Vermelho | Nenhum item marcado |
 
 > Cartões sem checklist não exibem badge.
 
 ---
 
-## Badges disponíveis
+## Badge disponível
 
 ### No quadro (card-badges)
-Exibe um único badge resumido por cartão, mostrando a quantidade de itens pendentes e a porcentagem geral de conclusão.
-
-### Dentro do cartão (card-detail-badges)
-Ao abrir um cartão, cada checklist recebe seu próprio badge individual com nome, progresso e cor correspondente ao estado.
+Exibe um badge resumido por cartão com a quantidade de itens pendentes e a porcentagem geral de conclusão.
 
 ---
 
@@ -35,7 +32,7 @@ Ao abrir um cartão, cada checklist recebe seu próprio badge individual com nom
 
 1. Acesse o [Trello Power-Up Admin](https://trello.com/power-ups/admin) e crie um novo Power-Up.
 2. Preencha a **Connector URL** com a URL onde o `index.html` está hospedado (ex: GitHub Pages).
-3. Ative as capabilities: `card-badges` e `card-detail-badges`.
+3. Ative a capability: `card-badges`.
 4. No seu quadro do Trello, vá em **Power-Ups** e ative o **Checklist Progress Badge**.
 
 ---
