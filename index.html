@@ -4,7 +4,7 @@
 </head>
 <body>
 <script>
-  var BUILD_TIME = '2026-04-23T10:45:00';
+  var BUILD_TIME = '2026-04-23T11:10:00';
 
   function buildFrontBadge(total, completed) {
     if (total === 0) return [];
@@ -45,36 +45,6 @@
         return buildFrontBadge(b.checkItems, b.checkItemsChecked || 0);
       });
     },
-
-    // Dentro do cartão: detalha por checklist (dados completos disponíveis ao abrir)
-    'card-detail-badges': function(t) {
-      return t.card('checklists').then(function(card) {
-        var checklists = card.checklists;
-        if (!checklists || checklists.length === 0) return [];
-
-        return checklists.map(function(cl) {
-          var items = cl.checkItems || [];
-          var total = items.length;
-          var completed = items.filter(function(i) {
-            return i.state === 'complete';
-          }).length;
-          var pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-          var color, icon;
-          if (completed === total && total > 0) { color = 'green';  icon = '✅'; }
-          else if (pct === 0)                   { color = 'red';    icon = '🚨'; }
-          else if (pct >= 50)                   { color = 'yellow'; icon = '⚠️'; }
-          else                                   { color = 'red';    icon = '🔴'; }
-
-          return {
-            title: cl.name,
-            text: icon + ' ' + cl.name.toUpperCase() + ': ' + completed + '/' + total + ' (' + pct + '%)',
-            color: color,
-            refresh: 10
-          };
-        });
-      });
-    }
 
   });
 </script>
