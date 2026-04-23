@@ -86,7 +86,7 @@
       'trabalho':     'red',
       'em andamento': 'yellow',
       'finalizado':   'green',
-      'lixeira':      ''
+      'lixeira':      null
     };
 
     var boardId = new URLSearchParams(location.search).get('boardId');
@@ -140,21 +140,38 @@
         })
         .then(function(lists) {
           setStatus('Aplicando cores...');
-          var count = 0;
-          var ps = lists.map(function(lista) {
+          var promises = lists.map(function(lista) {
             var r = corDaLista(lista.name);
-            if (!r.ok) return Promise.resolve();
-            count++;
-            var url = 'https://api.trello.com/1/lists/' + lista.id
-                    + '?key=' + APP_KEY
-                    + '&token=' + token
-                    + '&color=' + r.cor;
-            return fetch(url, { method: 'PUT' });
+            if (!r.ok) return Promise.resolve(null);
+            return fetch(
+              'https://api.trello.com/1/lists/' + lista.id + '?key=' + APP_KEY + '&token=' + token,
+              {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ color: r.cor })
+              }
+            ).then(function(resp) { return resp.json(); });
           });
-          return Promise.all(ps).then(function() { return count; });
+          return Promise.all(promises);
         })
-        .then(function(count) {
-          setStatus(count + ' lista(s) colorida(s)! Recarregue a pagina para ver.', 'ok');
+        .then(function(results) {
+          var aplicados = results.filter(function(r) { return r !== null; });
+          var primeiro = aplicados.find(function(r) { return r && r.name; });
+
+          if (primeiro) {
+            var corEsperada = corDaLista(primeiro.name).cor;
+            var corAtual = primeiro.color;
+            if (corAtual !== corEsperada) {
+              setStatus(
+                'API nao salvou a cor (retornou "' + corAtual + '" em vez de "' + corEsperada + '"). '
+                + 'Cores de lista podem exigir plano pago no Trello.', 'err'
+              );
+              document.getElementById('btn-aplicar').disabled = false;
+              return;
+            }
+          }
+
+          setStatus(aplicados.length + ' lista(s) colorida(s)! Recarregue a pagina para ver.', 'ok');
           document.getElementById('btn-aplicar').disabled = false;
         })
         .catch(function(err) {
