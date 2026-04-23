@@ -124,14 +124,18 @@
 
     function aplicarCores(token) {
       document.getElementById('btn-aplicar').disabled = true;
-      setStatus('Buscando listas...');
+      setStatus('Validando token...');
 
-      var listsUrl = 'https://api.trello.com/1/boards/' + boardId
-                   + '/lists?key=' + APP_KEY + '&token=' + token;
-
-      fetch(listsUrl)
+      fetch('https://api.trello.com/1/members/me?key=' + APP_KEY + '&token=' + token)
         .then(function(r) {
-          if (!r.ok) throw new Error('token_invalido');
+          if (r.status === 401) throw new Error('TOKEN_INVALIDO');
+          if (!r.ok) throw new Error('Falha na validacao: HTTP ' + r.status);
+          if (!boardId) throw new Error('ID do quadro nao encontrado. Feche e reabra o popup.');
+          setStatus('Buscando listas...');
+          return fetch('https://api.trello.com/1/boards/' + boardId + '/lists?key=' + APP_KEY + '&token=' + token);
+        })
+        .then(function(r) {
+          if (!r.ok) throw new Error('Erro ao buscar listas: HTTP ' + r.status);
           return r.json();
         })
         .then(function(lists) {
@@ -139,7 +143,7 @@
           var count = 0;
           var ps = lists.map(function(lista) {
             var r = corDaLista(lista.name);
-            if (!r.ok) return Promise.resolve({ ok: true });
+            if (!r.ok) return Promise.resolve();
             count++;
             var url = 'https://api.trello.com/1/lists/' + lista.id
                     + '?key=' + APP_KEY
@@ -154,9 +158,12 @@
           document.getElementById('btn-aplicar').disabled = false;
         })
         .catch(function(err) {
-          var invalido = String(err).indexOf('token_invalido') !== -1;
-          setStatus(invalido ? 'Token invalido. Clique em "Trocar token".' : 'Erro: ' + err.message, 'err');
-          if (invalido) t.remove('member', 'private', 'trelloToken');
+          if (err.message === 'TOKEN_INVALIDO') {
+            setStatus('Token invalido. Clique em "Trocar token de acesso".', 'err');
+            t.remove('member', 'private', 'trelloToken');
+          } else {
+            setStatus('Erro: ' + err.message, 'err');
+          }
           document.getElementById('btn-aplicar').disabled = false;
         });
     }
