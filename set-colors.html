@@ -7,46 +7,89 @@
       margin: 0;
       padding: 12px 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       color: #172b4d;
     }
-    p { margin: 0 0 10px; color: #5e6c84; font-size: 12px; line-height: 1.4; }
-    button {
+    p { margin: 0 0 8px; color: #5e6c84; line-height: 1.4; }
+    a { color: #0052cc; }
+    input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #dfe1e6;
+      border-radius: 3px;
+      font-size: 13px;
+      margin: 6px 0 8px;
+    }
+    input:focus { outline: none; border-color: #0052cc; }
+    .btn-primary {
       background: #0052cc;
       color: white;
       border: none;
       border-radius: 3px;
       padding: 8px 16px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       width: 100%;
     }
-    button:hover { background: #0065ff; }
-    button:disabled { background: #a5adba; cursor: not-allowed; }
-    #status { margin-top: 10px; font-size: 12px; min-height: 16px; }
+    .btn-primary:hover { background: #0065ff; }
+    .btn-primary:disabled { background: #a5adba; cursor: not-allowed; }
+    .btn-link {
+      background: none;
+      border: none;
+      color: #5e6c84;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 0 0;
+      text-decoration: underline;
+    }
+    .btn-link:hover { color: #172b4d; }
+    #status { margin-top: 8px; font-size: 12px; min-height: 16px; }
     #status.ok  { color: #006644; }
     #status.err { color: #ae2e24; }
   </style>
 </head>
 <body>
-  <p>Aplica cores nas listas pelo nome: pessoal (azul), trabalho (vermelho), em andamento (amarelo), finalizado (verde), lixeira (sem cor).</p>
-  <button id="btn">Aplicar Cores</button>
-  <div id="status"></div>
+  <div id="content">
+
+    <!-- Tela 1: pedir token -->
+    <div id="tela-token">
+      <p><b>1.</b> Clique no link abaixo para gerar um token de acesso no Trello:</p>
+      <a id="link-auth" href="#" target="_blank">Gerar token de acesso &rarr;</a>
+      <p style="margin-top:8px"><b>2.</b> Copie o token gerado e cole aqui:</p>
+      <input id="input-token" type="text" placeholder="Cole o token aqui..." />
+      <button class="btn-primary" id="btn-salvar">Salvar e Aplicar Cores</button>
+    </div>
+
+    <!-- Tela 2: já tem token -->
+    <div id="tela-aplicar" style="display:none">
+      <p>Cores configuradas: pessoal (azul), trabalho (vermelho), em andamento (amarelo), finalizado (verde), lixeira (sem cor).</p>
+      <button class="btn-primary" id="btn-aplicar">Aplicar Cores</button>
+      <br>
+      <button class="btn-link" id="btn-trocar">Trocar token de acesso</button>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
   <script>
-    // ↓ Mesma chave do index.html — obtenha em: https://trello.com/app-key
     var APP_KEY = 'ce51da389c07fbf1240dfd96fb248b8d';
+
+    var AUTH_URL = 'https://trello.com/1/authorize'
+      + '?expiration=never'
+      + '&scope=read,write'
+      + '&response_type=token'
+      + '&name=ColorirListas'
+      + '&key=' + APP_KEY;
 
     var MAPA_CORES = {
       'pessoal':      'sky',
       'trabalho':     'red',
       'em andamento': 'yellow',
       'finalizado':   'green',
-      'lixeira':      null
+      'lixeira':      ''
     };
 
     var t = TrelloPowerUp.iframe();
-    var btn = document.getElementById('btn');
-    var statusEl = document.getElementById('status');
 
     function corDaLista(nome) {
       var lower = (nome || '').toLowerCase().trim();
@@ -57,54 +100,88 @@
     }
 
     function setStatus(msg, cls) {
-      statusEl.textContent = msg;
-      statusEl.className = cls || '';
+      var el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = cls || '';
     }
 
-    btn.addEventListener('click', function() {
-      btn.disabled = true;
-      setStatus('Verificando autorização...');
+    function mostrarTelaToken() {
+      document.getElementById('link-auth').href = AUTH_URL;
+      document.getElementById('tela-token').style.display = 'block';
+      document.getElementById('tela-aplicar').style.display = 'none';
+      setStatus('');
+      t.sizeTo('#content');
+    }
 
-      var restApi = t.getRestApi();
+    function mostrarTelaAplicar() {
+      document.getElementById('tela-token').style.display = 'none';
+      document.getElementById('tela-aplicar').style.display = 'block';
+      setStatus('');
+      t.sizeTo('#content');
+    }
 
-      restApi.isAuthorized()
-        .then(function(autorizado) {
-          if (!autorizado) {
-            setStatus('Aguardando autorização do Trello...');
-            return restApi.requestToken({ scope: { read: true, write: true } });
-          }
-          return restApi.getToken();
-        })
-        .then(function(token) {
-          setStatus('Buscando listas...');
-          return t.board('id', 'lists').then(function(b) {
-            return { token: token, listas: b.lists };
-          });
-        })
-        .then(function(d) {
-          setStatus('Aplicando cores...');
-          var count = 0;
-          var ps = d.listas.map(function(lista) {
-            var r = corDaLista(lista.name);
-            if (!r.ok) return Promise.resolve();
-            count++;
-            var cor = r.cor === null ? 'null' : r.cor;
-            var url = 'https://api.trello.com/1/lists/' + lista.id
-                    + '?key=' + APP_KEY
-                    + '&token=' + d.token
-                    + '&color=' + cor;
-            return fetch(url, { method: 'PUT' });
-          });
-          return Promise.all(ps).then(function() { return count; });
-        })
-        .then(function(count) {
-          setStatus(count + ' lista(s) colorida(s)! Recarregue a pagina para ver.', 'ok');
-          btn.disabled = false;
-        })
-        .catch(function(err) {
-          setStatus('Erro: ' + (err.message || String(err)), 'err');
-          btn.disabled = false;
+    function aplicarCores(token) {
+      document.getElementById('btn-aplicar').disabled = true;
+      setStatus('Buscando listas...');
+
+      t.board('id', 'lists').then(function(b) {
+        setStatus('Aplicando cores...');
+        var count = 0;
+        var ps = b.lists.map(function(lista) {
+          var r = corDaLista(lista.name);
+          if (!r.ok) return Promise.resolve();
+          count++;
+          var url = 'https://api.trello.com/1/lists/' + lista.id
+                  + '?key=' + APP_KEY
+                  + '&token=' + token
+                  + '&color=' + r.cor;
+          return fetch(url, { method: 'PUT' });
         });
+
+        return Promise.all(ps).then(function(results) {
+          var erros = results.filter(function(r) { return r && !r.ok; });
+          if (erros.length > 0) {
+            setStatus('Token invalido ou expirado. Troque o token.', 'err');
+            t.remove('member', 'private', 'trelloToken');
+            setTimeout(mostrarTelaToken, 1500);
+          } else {
+            setStatus(count + ' lista(s) colorida(s)! Recarregue a pagina para ver.', 'ok');
+          }
+          document.getElementById('btn-aplicar').disabled = false;
+        });
+      }).catch(function(err) {
+        setStatus('Erro: ' + (err.message || String(err)), 'err');
+        document.getElementById('btn-aplicar').disabled = false;
+      });
+    }
+
+    // Inicializa verificando se já tem token salvo
+    t.get('member', 'private', 'trelloToken').then(function(token) {
+      if (token) {
+        mostrarTelaAplicar();
+      } else {
+        mostrarTelaToken();
+      }
+    });
+
+    document.getElementById('btn-salvar').addEventListener('click', function() {
+      var token = document.getElementById('input-token').value.trim();
+      if (!token) {
+        setStatus('Cole o token no campo acima.', 'err');
+        return;
+      }
+      t.set('member', 'private', 'trelloToken', token).then(function() {
+        mostrarTelaAplicar();
+        aplicarCores(token);
+      });
+    });
+
+    document.getElementById('btn-aplicar').addEventListener('click', function() {
+      t.get('member', 'private', 'trelloToken').then(aplicarCores);
+    });
+
+    document.getElementById('btn-trocar').addEventListener('click', function() {
+      t.remove('member', 'private', 'trelloToken').then(mostrarTelaToken);
     });
   </script>
 </body>
