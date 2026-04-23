@@ -4,9 +4,6 @@
 </head>
 <body>
 <script>
-  // ↓ Sua chave da API Trello — obtenha em: https://trello.com/app-key
-  var APP_KEY = 'ce51da389c07fbf1240dfd96fb248b8d';
-
   function buildFrontBadge(total, completed) {
     if (total === 0) return [];
 
@@ -37,21 +34,6 @@
   }
 
   TrelloPowerUp.initialize({
-
-    'board-buttons': function(t) {
-      return [{
-        text: 'Colorir Listas',
-        callback: function(t) {
-          return t.board('id').then(function(b) {
-            return t.popup({
-              title: 'Colorir Listas por Nome',
-              url: './set-colors.html?boardId=' + b.id,
-              height: 160
-            });
-          });
-        }
-      }];
-    },
 
     // Usa card.badges que sempre está disponível para TODOS os cartões
     'card-badges': function(t) {
@@ -92,15 +74,7 @@
       });
     }
 
-  }, {
-    appKey: APP_KEY,
-    appName: 'Checklist PowerUp'
   });
 </script>
-<script>var BUILD_TIME="23/04/2026 01:56";</script>
-<div style="font-family:sans-serif;font-size:11px;color:#888;padding:6px 10px;position:fixed;bottom:0;left:0;background:#f5f5f5;border-top:1px solid #ddd;border-right:1px solid #ddd;border-top-right-radius:6px;">
-  &#128337; Último deploy: <strong id="build-time"></strong>
-</div>
-<script>document.getElementById('build-time').textContent=BUILD_TIME;</script>
 </body>
 </html>
