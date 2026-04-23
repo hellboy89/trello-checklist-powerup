@@ -4,6 +4,9 @@
 </head>
 <body>
 <script>
+  // ↓ Sua chave da API Trello — obtenha em: https://trello.com/app-key
+  var APP_KEY = 'ce51da389c07fbf1240dfd96fb248b8d';
+
   function buildFrontBadge(total, completed) {
     if (total === 0) return [];
 
@@ -34,6 +37,19 @@
   }
 
   TrelloPowerUp.initialize({
+
+    'board-buttons': function(t) {
+      return [{
+        text: 'Colorir Listas',
+        callback: function(t) {
+          return t.popup({
+            title: 'Colorir Listas por Nome',
+            url: './set-colors.html',
+            height: 160
+          });
+        }
+      }];
+    },
 
     // Usa card.badges que sempre está disponível para TODOS os cartões
     'card-badges': function(t) {
@@ -74,6 +90,9 @@
       });
     }
 
+  }, {
+    appKey: APP_KEY,
+    appName: 'Checklist PowerUp'
   });
 </script>
 </body>

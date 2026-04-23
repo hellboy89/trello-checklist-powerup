@@ -1,0 +1,111 @@
+<html>
+<head>
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 12px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #172b4d;
+    }
+    p { margin: 0 0 10px; color: #5e6c84; font-size: 12px; line-height: 1.4; }
+    button {
+      background: #0052cc;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+    }
+    button:hover { background: #0065ff; }
+    button:disabled { background: #a5adba; cursor: not-allowed; }
+    #status { margin-top: 10px; font-size: 12px; min-height: 16px; }
+    #status.ok  { color: #006644; }
+    #status.err { color: #ae2e24; }
+  </style>
+</head>
+<body>
+  <p>Aplica cores nas listas pelo nome: pessoal (azul), trabalho (vermelho), em andamento (amarelo), finalizado (verde), lixeira (sem cor).</p>
+  <button id="btn">Aplicar Cores</button>
+  <div id="status"></div>
+  <script>
+    // ↓ Mesma chave do index.html — obtenha em: https://trello.com/app-key
+    var APP_KEY = 'ce51da389c07fbf1240dfd96fb248b8d';
+
+    var MAPA_CORES = {
+      'pessoal':      'sky',
+      'trabalho':     'red',
+      'em andamento': 'yellow',
+      'finalizado':   'green',
+      'lixeira':      null
+    };
+
+    var t = TrelloPowerUp.iframe();
+    var btn = document.getElementById('btn');
+    var statusEl = document.getElementById('status');
+
+    function corDaLista(nome) {
+      var lower = (nome || '').toLowerCase().trim();
+      for (var chave in MAPA_CORES) {
+        if (lower.indexOf(chave) !== -1) return { ok: true, cor: MAPA_CORES[chave] };
+      }
+      return { ok: false };
+    }
+
+    function setStatus(msg, cls) {
+      statusEl.textContent = msg;
+      statusEl.className = cls || '';
+    }
+
+    btn.addEventListener('click', function() {
+      btn.disabled = true;
+      setStatus('Verificando autorização...');
+
+      var restApi = t.getRestApi();
+
+      restApi.isAuthorized()
+        .then(function(autorizado) {
+          if (!autorizado) {
+            setStatus('Aguardando autorização do Trello...');
+            return restApi.requestToken({ scope: { read: true, write: true } });
+          }
+          return restApi.getToken();
+        })
+        .then(function(token) {
+          setStatus('Buscando listas...');
+          return t.board('id', 'lists').then(function(b) {
+            return { token: token, listas: b.lists };
+          });
+        })
+        .then(function(d) {
+          setStatus('Aplicando cores...');
+          var count = 0;
+          var ps = d.listas.map(function(lista) {
+            var r = corDaLista(lista.name);
+            if (!r.ok) return Promise.resolve();
+            count++;
+            var cor = r.cor === null ? 'null' : r.cor;
+            var url = 'https://api.trello.com/1/lists/' + lista.id
+                    + '?key=' + APP_KEY
+                    + '&token=' + d.token
+                    + '&color=' + cor;
+            return fetch(url, { method: 'PUT' });
+          });
+          return Promise.all(ps).then(function() { return count; });
+        })
+        .then(function(count) {
+          setStatus(count + ' lista(s) colorida(s)! Recarregue a pagina para ver.', 'ok');
+          btn.disabled = false;
+        })
+        .catch(function(err) {
+          setStatus('Erro: ' + (err.message || String(err)), 'err');
+          btn.disabled = false;
+        });
+    });
+  </script>
+</body>
+</html>
